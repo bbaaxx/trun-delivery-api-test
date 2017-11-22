@@ -1,0 +1,129 @@
+<link rel="import" href="https://polygit.org/components/polymer/polymer-element.html">
+<link rel="import" href="https://polygit.org/components/polymer/lib/elements/dom-repeat.html">
+
+<link rel="import" href="https://polygit.org/components/paper-styles/color.html">
+<link rel="import" href="https://polygit.org/components/paper-styles/typography.html">
+
+<link rel="import" href="https://polygit.org/components/paper-input/paper-input.html">
+<link rel="import" href="https://polygit.org/components/paper-item/paper-item.html">
+<link rel="import" href="https://polygit.org/components/paper-item/paper-item-body.html">
+
+<link rel="import" href="https://polygit.org/components/paper-input/paper-textarea.html">
+<link rel="import" href="https://polygit.org/components/paper-button/paper-button.html">
+<link rel="import" href="https://polygit.org/components/paper-rating/paper-rating.html">
+<link rel="import" href="https://polygit.org/components/iron-icons/iron-icons.html">
+<link rel="import" href="https://polygit.org/components/iron-icon/iron-icon.html">
+<link rel="import" href="https://polygit.org/components/google-map/google-map.html">
+<link rel="import" href="https://polygit.org/components/google-map/google-map-search.html">
+
+<dom-module id="restaurant-form">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      div[role="listbox"] {
+        border: 1px solid #e5e5e5;
+      }
+      .paper-rating {
+        --paper-rating-active-color: var(--paper-deep-purple-500);
+        --paper-rating-inactive-color: var(--paper-grey-200);
+      }
+      .google-map {
+        height: 300px;
+      }
+    </style>
+    <h3>[[title]]</h3>
+    <form action="handleSubmit">
+      <div class="text-inputs">
+        <paper-input value="{{restaurantData.commercialName}}" label="Commercial Name"></paper-input>
+        <paper-input value="{{restaurantData.legalName}}" label="Legal Name"></paper-input>
+        <paper-input value="{{restaurantData.commercialEmail}}" label="Commercial Email"></paper-input>
+        <paper-input value="{{restaurantData.adminNumber}}" label="Admin Number"></paper-input>
+        <paper-textarea value="{{restaurantData.address}}" label="Address"></paper-textarea>
+      </div>
+      <div class="rating">
+        <h5>Rating</h5>
+        <paper-rating class="paper-rating" rating="{{restaurantData.rating}}">Rating</paper-rating>
+      </div>
+      <hr>
+      <div class="search-address">
+        <google-map-search map="[[mapReference]]" query="[[placesApiQuery]]" results="{{placesApiResults}}"></google-map-search>
+        <paper-input value="{{placesInputQuery}}" label="Search Places"></paper-input>
+        <div role="listbox">
+          <template is="dom-repeat" items="[[placesApiResults]]" as="place">
+            <paper-item>
+              <paper-item-body two-line>
+                <div>[[place.name]]</div>
+                <div secondary>[[place.formatted_address]]</div>
+                <paper-button type="button" on-click="selectHandler" name="[[index]]">
+                  select
+                </paper-button>
+              </paper-item-body>
+            </paper-item>
+          </template>
+        </div>
+      </div>
+      
+      
+      <google-map on-google-map-marker-click="selectHandler" fit-to-markers latitude="{{mapCtr.latitude}}" longitude="{{mapCtr.longitude}}" map="{{mapReference}}" class="google-map" api-key="[[mapsApiKey]]">
+        <google-map-marker latitude="19.21" longitude="-99.39" draggable="true"></google-map-marker>
+<!--         <template is="dom-repeat" items="{{results}}" as="marker">
+          <google-map-marker latitude="{{marker.latitude}}"
+                             longitude="{{marker.longitude}}"
+                             click-events>
+            <h2>{{marker.name}}</h2>
+            <span>{{marker.formatted_address}}</span>
+          </google-map-marker>
+        </template> -->
+      </google-map>
+      
+      <paper-button on-tap="handleSubmit">Submit</paper-button>
+    </form>
+  </template>
+  
+  <script>
+    const wait = time => new Promise((resolve) => setTimeout(resolve, time));
+    
+    class RestaurantForm extends Polymer.Element {
+      static get is() { return "restaurant-form"; }
+      static get properties() {
+        return {
+          title: { type: String, value: 'Add a restaurant' },
+          mapsApiKey: { type: String, value: 'AIzaSyCcpQL7NOzrj77CwE0oMXwAXmJf3kE0X5s' },
+          restaurantData: { type: Object, value: () => ({ rating: 0 }) },
+          mapCtr: { type: Object, value: () => ({ latitude: 19.21, longitude: -99.39 }) },
+          placesApiQuery: { type: String },
+          placesApiResults: { type: Array, value: () => [] }
+        };
+      }
+      static get observers() {
+        return [
+          'placesQueryChanged(placesInputQuery)'
+        ]
+      }
+      handleSubmit(e) {
+        // fetch("/restaurant", {
+        //   method: "POST",
+        //   body: this.get('restaurantData')
+        // }).then(() => this.set('restaurantData', { rating: 0 }));
+        console.log(this.get('restaurantData'));
+        console.log(JSON.stringify(this.get('restaurantData')));
+      }
+      selectHandler(e, index) {
+        const resultId = e.composedPath()[0].name;
+        const { formatted_address, geometry } = this.get('placesApiResults')[resultId];
+        this.set('restaurantData.address', formatted_address);
+        this.set('restaurantData.Location', geometry);
+
+        this.set('mapCtr', geometry );
+        this.set('placesApiResults', []);
+        this.set('placesApiQuery', '');
+      }
+      placesQueryChanged(query) {
+        wait(2000).then(function() { this.set('placesApiQuery', this.get('placesInputQuery')); }.bind(this));
+      }
+    }
+    customElements.define(RestaurantForm.is, RestaurantForm);
+  </script>
+</dom-module>
